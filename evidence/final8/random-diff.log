@@ -1,0 +1,11 @@
+emu compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is vdot_random.bin
+The reference model is /home/ubuntu/bin/nemu-xs-ref.so
+The first instruction of core 0 has commited. Difftest enabled. 
+[1;34m[src/device/flash.c:97,load_flash_contents_from_mem] load flash from DUT via difftest_load_flash_v2: 12 bytes[0m
+vdot.vv random tests: 100 cases, vl=1..16
+fails=0  checksum=1bd2ef2a
+RESULT: PASS

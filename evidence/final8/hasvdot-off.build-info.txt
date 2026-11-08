@@ -1,0 +1,33 @@
+=== hasVdot=false 关断路径实测元数据 ===
+时间      : 2026-11-02T02:52:55+08:00
+关断版 emu: 113491136 B  md5 839f8a84ed8fd498d121ebfe5b8c8aa4
+出货版 emu: 113474752 B  md5 a112bf3d6e92e532aeb57f2ce10fcd4a
+测试程序  : tests/vdot/vdot_off_test.c（196 行）
+编译参数  : riscv64-linux-gnu-gcc -march=rv64gcv -mabi=lp64d -nostdlib -nostartfiles -ffreestanding -O2 -fno-pic -fno-pie -mcmodel=medany -T /home/ubuntu/hello/link.ld
+运行      : emu -i vdot_off.bin -F tests/flash/stub.bin --no-diff
+
+--- 关断版输出 ---
+emu-novdot compiled at Nov  2 2026, 02:00:51
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is vdot_off.bin
+vdot-off test (hasVdot=false)
+  case1 vdot@e8m1        PASS (trapped=1 cause=00000002)
+  case2 v3-unmodified    PASS (v3[0]=0badf00d)
+  case3 core-alive      PASS (v5[0]=00000022)
+  case4 vm=0             PASS (trapped=1 cause=00000002)
+RESULT: PASS
+
+--- 出货版输出（对照）---
+emu-v23-final-1841 compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is vdot_off.bin
+vdot-off test (hasVdot=false)
+  case1 vdot@e8m1        FAIL (trapped=00000000 cause=00000000 want cause=00000002)
+  case2 v3-unmodified    FAIL (v3[0]=00000908 want=0badf00d)
+  case3 core-alive      PASS (v5[0]=00000022)
+  case4 vm=0             PASS (trapped=1 cause=00000002)
+RESULT: FAIL

@@ -1,0 +1,21 @@
+=== 环境快照 2026-10-28T12:59:57+08:00 ===
+Ubuntu 22.04.5 LTS  6.8.0-138-generic
+cores: 8  mem: 27Gi
+/dev/sda3       196G   53G  134G  29% /
+
+--- tools ---
+Verilator 5.052 2026-09-05 rev v5.052
+Ubuntu clang version 19.1.7 (++20250114103320+cd708029e0b2-1~exp1~20250114103432.75)
+openjdk version "17.0.20.1" 2026-08-18
+os.arch: amd64
+riscv64-linux-gnu-gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+
+--- builds ---
+sv files: 1815
+emu: 113515664 bytes
+/home/ubuntu/xs-env/NEMU/build/riscv64-nemu-interpreter 528896
+/home/ubuntu/xs-env/NEMU/build/riscv64-nemu-interpreter-so 1458848
+
+--- commits ---
+XiangShan 16ae9ddcd 2025-04-03
+NEMU      a48a11f2 2026-09-06

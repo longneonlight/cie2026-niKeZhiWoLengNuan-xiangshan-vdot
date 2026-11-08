@@ -1,0 +1,58 @@
+=== CIE-2026 vdot 阶段一：环境与 hello 验证（可重放） ===
+时间：2026-10-31T10:37:42+08:00
+仓库：/home/ubuntu/cie2026-vdot-repo
+日志：/home/ubuntu/cie2026-vdot-repo/evidence/stage1/stage1-deploy-20261031-103742.log
+
+## 系统信息
+$ bash -c uname -a; echo "cores: $(nproc)"; free -g | sed -n "1,2p"
+Linux ubuntu-virtual-machine 6.8.0-138-generic #138~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug  7 13:43:15 UTC  x86_64 x86_64 x86_64 GNU/Linux
+cores: 8
+               total        used        free      shared  buff/cache   available
+Mem:              27           1          22           0           3          25
+   -> exit=0  elapsed=0s
+
+## 工具链
+$ bash -c riscv64-linux-gnu-gcc --version | head -1; verilator --version 2>/dev/null | head -1 || true
+riscv64-linux-gnu-gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+Verilator 5.052 2026-09-05 rev v5.052
+   -> exit=0  elapsed=0s
+
+## 关键产物是否存在
+$ bash -c ls -l '/home/ubuntu/xs-env/XiangShan/build/emu' '/home/ubuntu/bin/nemu-standalone'
+-rwxrwxr-x 1 ubuntu ubuntu    528928 10月 29 10:06 /home/ubuntu/bin/nemu-standalone
+-rwxrwxr-x 1 ubuntu ubuntu 113503376 10月 29 09:52 /home/ubuntu/xs-env/XiangShan/build/emu
+   -> exit=0  elapsed=0s
+
+## 编译 hello（裸机：-fno-pic/-fno-pie/-mcmodel=medany）
+$ riscv64-linux-gnu-gcc -march=rv64gcv -mabi=lp64d -nostdlib -nostartfiles -ffreestanding -O2 -fno-pic -fno-pie -mcmodel=medany -T /home/ubuntu/cie2026-vdot-repo/tests/hello/link.ld -o /tmp/stage1.aamDOn/hello.elf /home/ubuntu/cie2026-vdot-repo/tests/hello/hello.c
+   -> exit=0  elapsed=0s
+
+## objcopy -> bin
+$ riscv64-linux-gnu-objcopy -O binary /tmp/stage1.aamDOn/hello.elf /tmp/stage1.aamDOn/hello.bin
+   -> exit=0  elapsed=0s
+
+## NEMU 上运行 hello
+$ bash -c timeout 10 '/home/ubuntu/bin/nemu-standalone' -b '/tmp/stage1.aamDOn/hello.bin'
+hello xiangshan, I am CHEN JIONG, 192.168.157.130
+   -> exit=124  elapsed=10s
+
+## RTL 上运行 hello（timeout 120，退出码 124 属正常）
+$ bash -c timeout 120 '/home/ubuntu/xs-env/XiangShan/build/emu' -i '/tmp/stage1.aamDOn/hello.bin' --no-diff; true
+emu compiled at Oct 29 2026, 09:32:01
+Using simulated 32768B flash
+Using simulated 8386560MB RAM
+The image is /tmp/stage1.aamDOn/hello.bin
+hello xiangshan, I am CHEN JIONG, 192.168.157.130
+   -> exit=0  elapsed=120s
+
+## RTL 生成规模
+$ bash -c echo "sv files: $(find '/home/ubuntu/xs-env/XiangShan/build/rtl' -name '*.sv' | wc -l)"; du -sh '/home/ubuntu/xs-env/XiangShan/build/rtl'
+sv files: 1816
+2.7G	/home/ubuntu/xs-env/XiangShan/build/rtl
+   -> exit=0  elapsed=0s
+
+## 判定
+  [OK]   hello 在 NEMU 与 RTL 上各输出一次（共 2 次）
+
+OVERALL: PASS
+日志已写入：/home/ubuntu/cie2026-vdot-repo/evidence/stage1/stage1-deploy-20261031-103742.log

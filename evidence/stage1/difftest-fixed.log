@@ -1,0 +1,11 @@
+emu compiled at Oct 28 2026, 12:31:06
+Using simulated 32768B flash
+use /home/ubuntu/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is /home/ubuntu/hello/hello.bin
+The reference model is /home/ubuntu/xs-env/NEMU/build/riscv64-nemu-interpreter-so
+The first instruction of core 0 has commited. Difftest enabled. 
+[1;34m[src/monitor/image_loader.c:205,load_img] Loading flash image: /home/ubuntu/stub.bin
+[0m
+[1;34m[src/monitor/image_loader.c:250,load_img] Read 12 bytes from file /home/ubuntu/stub.bin to 0x0xf0000000[0m
+hello xiangshan, I am CHEN JIONG, 192.168.157.130

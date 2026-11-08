@@ -1,0 +1,70 @@
+diff --git a/src/isa/riscv64/include/isa-all-instr.h b/src/isa/riscv64/include/isa-all-instr.h
+index 2f18ca17..58a8fdf6 100644
+--- a/src/isa/riscv64/include/isa-all-instr.h
++++ b/src/isa/riscv64/include/isa-all-instr.h
+@@ -167,6 +167,7 @@
+   f(vssra) f(vnsrl) f(vnsra) f(vnclipu) \
+   f(vnclip) f(vssrl) f(vwredsumu) f(vwredsum) \
+   f(vredsum) \
++  f(vdot) \
+   f(vredand) f(vredor) f(vredxor) f(vredminu) \
+   f(vredmin) f(vredmaxu) f(vredmax) f(vmvsx) \
+   f(vmvxs) f(vpopc) f(vfirst) f(vmsbf) f(vmsof) \
+diff --git a/src/isa/riscv64/instr/rvv/decode.h b/src/isa/riscv64/instr/rvv/decode.h
+index ee7618e0..b35d5782 100644
+--- a/src/isa/riscv64/instr/rvv/decode.h
++++ b/src/isa/riscv64/instr/rvv/decode.h
+@@ -316,6 +316,7 @@ def_THelper(vopmvv) {
+     return EXEC_ID_inv;
+   }
+   def_INSTR_TAB("000000 ? ????? ????? ??? ????? ????? ??", vredsum);
++  def_INSTR_TAB("111110 1 ????? ????? 010 ????? ????? ??", vdot);
+   def_INSTR_TAB("000001 ? ????? ????? ??? ????? ????? ??", vredand);
+   def_INSTR_TAB("000010 ? ????? ????? ??? ????? ????? ??", vredor);
+   def_INSTR_TAB("000011 ? ????? ????? ??? ????? ????? ??", vredxor);
+diff --git a/src/isa/riscv64/instr/rvv/vcompute.h b/src/isa/riscv64/instr/rvv/vcompute.h
+index 2bcb6aae..793b7c29 100644
+--- a/src/isa/riscv64/instr/rvv/vcompute.h
++++ b/src/isa/riscv64/instr/rvv/vcompute.h
+@@ -261,6 +261,41 @@ def_EHelper(vredsum) {
+   REDUCTION(REDSUM, SIGNED);
+ }
+ 
++// vdot.vv: int8 cross-lane dot product (2026 CIE custom instruction)
++// vd[31:0] = sum_{i<8} (int8)vs1[i] * (int8)vs2[i], 32-bit wrap; rest of vd zeroed.
++// 注意：题面写的是 `for i in range(8)`，**vl 不参与计算**（与 RVV 的按 vl 语义不同）。
++def_EHelper(vdot) {
++  /* 合法条件与 RTL 侧一致：SEW=e8、LMUL=1、vm=1。
++   * 其余组合必须是非法指令（longjmp EX_II），否则 difftest 会与 DUT 不一致。 */
++  require_vector(true);
++  /* vm 位直接从指令字取（NEMU 的 s->vm 在本版本未被赋值，不可靠）。
++   * 译码模式与 RTL 的 BitPat 已经对齐，都把 bit25 固定为 1：vm=0 在译码阶段
++   * 就落不到本 helper。这里的判断是兜底，正常路径不会命中。 */
++  if (vtype->vsew != 0 || vtype->vlmul != 0 || ((s->isa.instr.val >> 25) & 1) == 0) {
++    longjmp_exception(EX_II);
++  }
++  /* 与香山的既有约束一致：向量算术指令在 vstart != 0 时报非法
++   * （VecExceptionGen.scala:275  vstartIllegal = isVArith && vstart =/= 0）。
++   * 实测 vmul.vv 同样如此，所以 vdot 沿用该规则。 */
++  if (vstart->val != 0) {
++    longjmp_exception(EX_II);
++  }
++  int32_t acc = 0;
++  /* 题面语义：for i in range(8)，固定取前 8 个 int8，与 vl 无关 */
++  for (int idx = 0; idx < 8; idx++) {
++    rtlreg_t va = 0, vb = 0;
++    get_vreg(id_src->reg, idx, &va, vtype->vsew, vtype->vlmul, 1, 0);
++    get_vreg(id_src2->reg, idx, &vb, vtype->vsew, vtype->vlmul, 1, 0);
++    acc += (int32_t)(int8_t)va * (int32_t)(int8_t)vb;
++  }
++  int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
++  for (int i = 0; i < vlmax; i++) {
++    rtlreg_t byte = (i < 4) ? (((uint32_t)acc >> (8 * i)) & 0xFF) : 0;
++    set_vreg(id_dest->reg, i, byte, 0, vtype->vlmul, 0);
++  }
++  vp_set_dirty();
++}
++
+ def_EHelper(vredand) {
+   REDUCTION(REDAND, UNSIGNED);
+ }

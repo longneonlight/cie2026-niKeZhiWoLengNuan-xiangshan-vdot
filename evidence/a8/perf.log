@@ -1,0 +1,12 @@
+emu compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is perf3.bin
+vdot perf (NITER=100)
+vdot result = 000000cc
+[A] latency  : baseline=11  vdot=1  cyc/次  速度比(x100)=1100
+[B] throughput: baseline=5  vdot=3  cyc/次  速度比(x100)=166
+[B'] scalar   : 19 cyc/次  相对 vdot(x100)=633  相对 baseline(x100)=380
+[C] b2b      : baseline=17  vdot=1  cyc/次  速度比(x100)=1700
+RESULT: DONE

@@ -1,0 +1,10 @@
+=== vdot regression summary 2026-11-08T15:24:22+08:00 ===
+
+TEST                       RESULT DETAIL
+-------------------------- ------ ------------------------------
+build-clean(VDOTDBG=0)     PASS   0
+basic-9case(difftest)      PASS   9/9 mismatch=0
+illegal-4cond(no-diff)     PASS   4/4
+vstart(no-diff)            PASS   3/3
+
+OVERALL: PASS

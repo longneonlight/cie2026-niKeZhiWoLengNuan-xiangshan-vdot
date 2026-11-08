@@ -1,0 +1,18 @@
+=== stage1: vadd.vv（tests/hello/vadd.c）在香山 RTL 上 ===
+2026-11-07T22:02:00+08:00
+
+-rwxrwxr-x 1 ubuntu ubuntu 113474752 Nov  1 18:41 ~/xs-env/XiangShan/build/emu
+
+$ /home/ubuntu/xs-env/XiangShan/build/emu -i vadd.bin --no-diff
+emu compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+Using simulated 8386560MB RAM
+The image is /tmp/vadd-evidence2/vadd.bin
+vadd.vv test
+v3 bytes: 02 02 02 02 02 02 02 02
+
+vadd.vv test
+v3 bytes: 02 02 02 02 02 02 02 02
+RESULT: PASS (all lanes == 0x02)
+
+--- done ---

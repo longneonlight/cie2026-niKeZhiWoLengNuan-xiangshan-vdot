@@ -1,0 +1,13 @@
+=== stage1: hello on XiangShan RTL emulator (Ubuntu 22.04.5) ===
+2026-11-07T19:29:36+08:00
+
+-rwxrwxr-x 1 ubuntu ubuntu 113474752 Nov  1 18:41 ~/xs-env/XiangShan/build/emu
+
+$ /home/ubuntu/xs-env/XiangShan/build/emu -i hello.bin --no-diff
+emu compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+Using simulated 8386560MB RAM
+The image is /tmp/hello-rebuild/hello.bin
+hello xiangshan, I am niKeZhiWoLengNuan, 192.168.157.50
+
+--- done ---

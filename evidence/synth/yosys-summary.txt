@@ -1,0 +1,23 @@
+=== Yosys 通用门级综合 ===
+工具：Yosys 0.9 (git sha1 1979e0b)
+流程：read_verilog -sv → synth -top X → stat → ltp
+说明：generic gate 计数，不是工艺面积；ltp 是逻辑级数，不是 ns。
+输入：XiangShan/build/rtl/VDotUnit.sv（CIRCT 生成，无 vl 端口）
+      sized-cast 清理：sed -E "s/[0-9]+'\(/\(/g"
+
+--- VDotUnit ---
+Number of cells: 4887
+ltp            : 35
+
+--- 单价 ---
+8x8  有符号乘法器（mul8s）   : 391
+16x16 乘法器（firtool 写法） : 636
+32 位加法器（add32）         : 192
+
+--- 结构与门数的关系（不宣称百分比）---
+结构 = 8 个乘法器 + 7 个加法器（3 级平衡树）
+若按单价相加：8x636 + 7x192 = 6432  > 实测 4887
+→ 差距来自 ABC 在整单元综合时的跨实例逻辑共享，
+  "各部件单价相加"不能当作构成分解；因此本文件不做百分比归因。
+≈ 12.5 个 8x8 乘法器当量（仅作量级换算）
+

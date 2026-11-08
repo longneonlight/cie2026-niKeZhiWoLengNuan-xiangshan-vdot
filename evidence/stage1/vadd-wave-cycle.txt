@@ -1,0 +1,20 @@
+=== 阶段一：vadd.vv 波形级执行证据（2026-10-29 01:05）===
+波形：/tmp/wfull.vcd（emu.trace 全窗口 [0,13000]，2.6 GB）
+程序：vadd.bin（v1=v2=0x01×16, v3=v1+v2 期望 0x02×16）
+
+VFEX2（exus_2 / VialuFix）逐拍快照：
+  t=8566/8567  io_in_valid=0（等待）
+  t=8568       io_in_valid=1  fuOpType=64  vsew=0 vlmul=0 vm=1
+               src_0=0x01010101010101010101010101010101
+               src_1=0x01010101010101010101010101010101   robIdx=24
+  t=8569       io_out_valid=1 data_0=0x02020202020202020202020202020202
+               pdest=51 vecWen=1
+  t=8570+      输出撤除
+
+同一窗口内其他事件：
+  t=8561  exus_2 收到另一条向量指令（fuOp=0x1ad，src_0=0）——对应 vmv.v.x
+  t=8653  第一个 UART 字符输出（程序开始打印 'vadd.vv test'）
+  t=8568 -> 8569 : 该 FU 的 in→out 为 1 拍
+  t=8569 -> 8653 : 结果写回后 84 拍才看到第一个 UART 字符
+
+结论：vadd.vv 在 VFEX2 的 VIAluFix 上 1 拍出结果，数据通路与架构定义一致。

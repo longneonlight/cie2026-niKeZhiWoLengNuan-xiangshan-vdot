@@ -1,0 +1,8 @@
+emu compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is vdot_random.bin
+vdot.vv random tests: 100 cases, vl=1..16
+fails=0  checksum=1bd2ef2a
+RESULT: PASS

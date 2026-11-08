@@ -1,0 +1,45 @@
+=== Yosys 通用门级综合（2026-10-29 09:11）===
+工具：Yosys 0.9（Ubuntu 22.04 apt），流程：read_verilog -sv → synth -top X → stat
+说明：这是 generic gate 计数，不是工艺面积；只用来做“量级与构成”的对照。
+
+VDotUnit 原始文件来自 XiangShan/build/rtl/VDotUnit.sv（CIRCT 生成），
+为绕过 yosys 0.9 不支持 SystemVerilog sized-cast（16'(...)）的问题，
+用 sed -E "s/[0-9]+'\\(/\\(/g" 做了等价清理（只去掉显式宽度转换，位宽由 LHS 决定）。
+
+--- VDotUnit ---
+
+--- mul8s ---
+   Number of wires:                378
+   Number of cells:                391
+     $_ANDNOT_                      80
+     $_AND_                         53
+     $_AOI3_                        41
+     $_MUX_                          1
+     $_NAND_                        25
+     $_NOR_                         10
+     $_NOT_                          9
+     $_OAI3_                         8
+     $_ORNOT_                        4
+     $_OR_                          14
+
+--- add32 ---
+   Number of wires:                163
+   Number of cells:                192
+     $_ANDNOT_                      19
+     $_AND_                          9
+     $_AOI3_                        19
+     $_NAND_                        26
+     $_NOR_                          8
+     $_NOT_                         10
+     $_OAI3_                        21
+     $_ORNOT_                        6
+     $_OR_                          11
+     $_XNOR_                        31
+
+--- 构成核对 ---
+VDotUnit              : 4976 门
+单个 8x8 有符号乘法器 : 391 门
+单个 32 位加法器      : 192 门
+8*乘法 + 7*加法       : 4472 门 (89.9% of VDotUnit)
+多出的门              : 504 门（vl 门控 + 32 位对齐/清零）
+VDotUnit ≈ 12.7 个 8x8 乘法器

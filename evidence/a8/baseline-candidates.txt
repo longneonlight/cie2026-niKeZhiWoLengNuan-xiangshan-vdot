@@ -1,0 +1,44 @@
+# A8 基线加固实测（2026-10-31）
+
+主机：VM 192.168.157.50（Ubuntu 22.04）
+EMU ：`~/bin/emu-build7-clean`（113,503,376 B，与定版同一二进制）
+程序：`tests/baseline/perf_latency.c`（在原有三口径上新增 `thr_scalar()`）
+编译：`riscv64-linux-gnu-gcc -march=rv64gcv -mabi=lp64d -nostdlib -nostartfiles
+      -ffreestanding -O2 -fno-pic -fno-pie -mcmodel=medany -T ~/hello/link.ld`
+运行：`emu -i perf2.bin -F tests/flash/stub.bin --no-diff`
+
+## 原始输出（`evidence/a8/a8-raw.log`）
+
+```
+vdot perf (NITER=100)
+vdot result = 000000cc
+[A] latency  : baseline=11  vdot=1  cyc/次  速度比(x100)=1100
+[B] throughput: baseline=5  vdot=3  cyc/次  速度比(x100)=166
+[B'] scalar   : 19 cyc/次  相对 vdot(x100)=633  相对 baseline(x100)=271
+[C] b2b      : baseline=17  vdot=1  cyc/次  速度比(x100)=1700
+RESULT: DONE
+```
+
+## 结论
+
+1. **原有 7 → 3（2.33×）在同一 harness 里逐拍复现**，不是口径漂移。
+2. 新增的标量展开实现是 **19 拍/次**：比 vdot 慢 6.3×，比向量基线还慢 2.7×。
+   也就是说"分母挑了最有利的一条"这个质疑不成立——能算同一个 8 元素点积的
+   非向量写法只有标量，而它更慢。
+3. 数据相关的 e16 预加宽写法（`vmul.vv` + `vredsum.vs`，16 位累加）在本用例上更快，
+   但**语义不等价**（8 个 int8 乘积之和可达 2^17，16 位累加会溢出），因此不作为候选。
+   报告里不得用它来压低自己的加速比。
+
+## A9（端到端 GEMV）：已完成，见 `gemv-kernel.md`
+
+`tests/baseline/gemv_kernel.c` 早期版本在 RTL 上“卡死”。**根因不是 RTL**：
+`vwmul` 的目的寄存器用了 `v3`（奇数），XiangShan 的 `VecExceptionGen` 对加宽指令要求
+`vd` 偶数对齐，于是被判非法；裸机程序没装 trap handler，PC 跑飞，看起来像挂死。
+改成 `v6` 并把 `v0` 种子清零后，64×64 int8 GEMV 正常跑完：
+
+| 版本 | 总拍数 | cyc/MAC | checksum |
+|---|---|---|---|
+| V1 `vdot` | **5,110** | 1.25 | `5d25e46e` |
+| V2 `vwmul+vwredsum` | 5,926 | 1.45 | `5d25e46e` |
+
+**内核级 1.16×**（微基准 2.33×），两版结果逐位一致。完整定位过程见 `gemv-kernel.md`。

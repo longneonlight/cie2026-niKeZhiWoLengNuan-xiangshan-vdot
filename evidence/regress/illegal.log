@@ -1,0 +1,11 @@
+emu compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is vdot_illegal.bin
+vdot.vv illegal-condition tests
+  e8/m1/vm=1    PASS (trapped=00000000 cause=00000000)
+  vm=0         PASS (trapped=00000001 cause=00000002)
+  vsew=e16     PASS (trapped=00000001 cause=00000002)
+  vlmul=m2     PASS (trapped=00000001 cause=00000002)
+RESULT: PASS

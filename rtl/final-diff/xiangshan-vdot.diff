@@ -1,0 +1,151 @@
+diff --git a/src/main/scala/xiangshan/Parameters.scala b/src/main/scala/xiangshan/Parameters.scala
+index 40b33dfce..4b778c4e4 100644
+--- a/src/main/scala/xiangshan/Parameters.scala
++++ b/src/main/scala/xiangshan/Parameters.scala
+@@ -357,6 +357,9 @@ case class XSCoreParameters
+   softPTWDelay: Int = 1,
+   hasMbist: Boolean = false,
+   hasSramCtl: Boolean = false,
++  // 2026 CIE 自定义向量点积指令 vdot.vv（见 docs/02-vdot-design.md）。
++  // 关掉时：译码表摘掉 VDOT_VV 表项（落回非法），且 VIMacU 不再例化 VDotUnit —— 零面积开销。
++  hasVdot: Boolean = true,
+ ){
+   def ISABase = "rv64i"
+   def ISAExtensions = Seq(
+diff --git a/src/main/scala/xiangshan/backend/decode/DecodeUnit.scala b/src/main/scala/xiangshan/backend/decode/DecodeUnit.scala
+index 5b1419eaa..cdf612716 100644
+--- a/src/main/scala/xiangshan/backend/decode/DecodeUnit.scala
++++ b/src/main/scala/xiangshan/backend/decode/DecodeUnit.scala
+@@ -802,7 +802,15 @@ class DecodeUnit(implicit p: Parameters) extends XSModule with DecodeUnitConstan
+ 
+   private val inst: XSInstBitFields = io.enq.ctrlFlow.instr.asTypeOf(new XSInstBitFields)
+ 
+-  val decode_table: Array[(BitPat, List[BitPat])] = XDecode.table ++
++  /** vdot.vv 的编译期开关（见 `XSCoreParameters.hasVdot`）。
++    * 关掉时必须**同时**摘掉译码表项，否则指令仍能译出、而 FU 侧没有实现，会静默算错。
++    */
++  private val hasVdot = p(XSCoreParamsKey).hasVdot
++
++  private def isVdotEntry(pat: BitPat): Boolean =
++    pat.value == VDot.VDOT_VV.value && pat.mask == VDot.VDOT_VV.mask
++
++  val decode_table: Array[(BitPat, List[BitPat])] = (XDecode.table ++
+     FpDecode.table ++
+ //    FDivSqrtDecode.table ++
+     BitmanipDecode.table ++
+@@ -815,6 +823,7 @@ class DecodeUnit(implicit p: Parameters) extends XSModule with DecodeUnitConstan
+     ZicondDecode.table ++
+     ZimopDecode.table ++
+     ZfaDecode.table
++  ).filter { case (pat, _) => hasVdot || !isVdotEntry(pat) }
+ 
+   require(decode_table.map(_._2.length == 15).reduce(_ && _), "Decode tables have different column size")
+   // assertion for LUI: only LUI should be assigned `selImm === SelImm.IMM_U && fuType === FuType.alu`
+diff --git a/src/main/scala/xiangshan/backend/decode/Instructions.scala b/src/main/scala/xiangshan/backend/decode/Instructions.scala
+index 0b2f535ab..94e0805d4 100644
+--- a/src/main/scala/xiangshan/backend/decode/Instructions.scala
++++ b/src/main/scala/xiangshan/backend/decode/Instructions.scala
+@@ -21,6 +21,18 @@ object Zvbb {
+   def VWSLL_VX = BitPat("b110101???????????100?????1010111")
+ }
+ 
++object VDot {
++  // vdot.vv vd, vs1, vs2   (opcode=1010111, funct3=010=OPMVV, funct6=111110, vm=1)
++  // 选型依据（可复核）：
++  //  - RVV 1.0 的 OPMVV 里 funct6=111110 只有 `vwmaccus.vx`，它的 funct3=110；
++  //    本条用 funct3=010，两者编码不相交（0xFA20A1D7 vs 0xFA20E1D7）。
++  //  - 本仓 VecDecoder 现有 467 个表项与该模式两两不重叠（穷举比对，见
++  //    docs/AUDIT-VERIFY.md §2）。
++  //  - 已知寄生风险：111110 紧邻加宽乘加块（vwmaccu/vwmacc/vwmaccsu=111100/111101/111111），
++  //    若将来 RVV 补出 `vwmaccus.vv` 会占走这个槽。理由与风险见 docs/02-vdot-design.md §3。
++  def VDOT_VV = BitPat("b1111101??????????010?????1010111")
++}
++
+ object Zimop {
+   def MOP_R  = BitPat("b1?00??0111???????100?????1110011")
+   def MOP_RR = BitPat("b1?00??1??????????100?????1110011")
+diff --git a/src/main/scala/xiangshan/backend/decode/VecDecoder.scala b/src/main/scala/xiangshan/backend/decode/VecDecoder.scala
+index 376419107..461b1cce7 100644
+--- a/src/main/scala/xiangshan/backend/decode/VecDecoder.scala
++++ b/src/main/scala/xiangshan/backend/decode/VecDecoder.scala
+@@ -12,6 +12,8 @@ import xiangshan.backend.fu.FuType
+ import xiangshan._
+ import yunsuan.{VfpuType, VipuType, VimacType, VpermType, VialuFixType, VfaluType, VfmaType, VfdivType, VfcvtType, VidivType}
+ import xiangshan.backend.decode.Zvbb._
++import xiangshan.backend.decode.VDot._
++import xiangshan.backend.fu.wrapper.VdotOpcode
+ 
+ abstract class VecDecode extends XSDecodeBase {
+   def generate() : List[BitPat]
+@@ -381,6 +383,11 @@ object VecDecoder extends DecodeConstants {
+     VIOTA_M      -> OPMVV(T, FuType.vipu, VipuType.viota_m, F, T, F, UopSplitType.VEC_MVV, src1 = SrcType.no), // viota.m vd, vs2, vm
+ 
+     VMACC_VV     -> OPMVV(T, FuType.vimac, VimacType.vmacc, F, T, F, UopSplitType.VEC_VVV),
++    // vdRen = F：VDOT_VV 的 BitPat 已把 vm 固定为 1，不需要读旧 vd 做掩码/尾部合并
++    // （FU 侧的输出也不经 Mgu——这两件事是一对，改一条要同时看另一条）。
++    // 对比 vmul（其 BitPat 的 vm 位是 ?，必须保守置 T），这里少一次 VRF 读请求
++    // 与一条对 vd 的假依赖；**物理读端口数不变**（VimacCfg.srcData 固定声明 3 个向量源）。
++    VDOT_VV      -> OPMVV(F, FuType.vimac, VdotOpcode.vdot, F, T, F, UopSplitType.VEC_VVV),
+     VMADD_VV     -> OPMVV(T, FuType.vimac, VimacType.vmadd, F, T, F, UopSplitType.VEC_VVV),
+     VMAND_MM     -> OPMVV(T, FuType.vialuF, VialuFixType.vmand_mm, F, T, F, UopSplitType.dummy),
+     VMANDN_MM    -> OPMVV(T, FuType.vialuF, VialuFixType.vmandn_mm, F, T, F, UopSplitType.dummy),
+diff --git a/src/main/scala/xiangshan/backend/fu/wrapper/VIMacU.scala b/src/main/scala/xiangshan/backend/fu/wrapper/VIMacU.scala
+index 27eb8012e..e7741ab3e 100644
+--- a/src/main/scala/xiangshan/backend/fu/wrapper/VIMacU.scala
++++ b/src/main/scala/xiangshan/backend/fu/wrapper/VIMacU.scala
+@@ -5,9 +5,10 @@ import chisel3._
+ import chisel3.util._
+ import utility.XSError
+ import xiangshan.backend.fu.FuConfig
+-import xiangshan.backend.fu.vector.Bundles.VSew
++import xiangshan.backend.fu.vector.Bundles.{VLmul, VSew}
+ import xiangshan.backend.fu.vector.utils.VecDataSplitModule
+ import xiangshan.backend.fu.vector.{Mgu, Utils, VecPipedFuncUnit, VecSrcTypeModule}
++import xiangshan.XSCoreParamsKey
+ import xiangshan.ExceptionNO
+ import yunsuan.VialuFixType
+ import yunsuan.encoding.Opcode.VimacOpcode
+@@ -145,7 +146,40 @@ class VIMacU(cfg: FuConfig)(implicit p: Parameters) extends VecPipedFuncUnit(cfg
+   mgu.io.in.info.dstMask := 0.B
+   mgu.io.in.isIndexedVls := false.B
+ 
+-  io.out.bits.res.data := mgu.io.out.vd
+-  io.out.bits.res.vxsat.get := (outVxsat & mgu.io.out.active).orR
+-  io.out.bits.ctrl.exceptionVec.get(ExceptionNO.illegalInstr) := mgu.io.out.illegal
++  /**
++    * vdot.vv：扩展本功能单元（FuType.vimac / VimacCfg），新增乘加归约通路。
++    *
++    * 设计要点：
++    *  1. `outData` 为流水末级数据，与 `outCtrl` 对齐，组合逻辑直接在此级计算；
++    *  2. 输出**不经 Mgu**：归约类结果直接给出完整寄存器值，
++    *     参照 `VIPU`（实现 vredsum/vwredsum）的 `res.data := vialu.io.out.bits.vd`。
++    *     这一条与译码侧的 `vdRen = F` 是**一对**：不读旧 vd，就不能再指望 Mgu 做
++    *     tail 合并，所以必须整寄存器给值。改动其中一条要同时看另一条。
++    *  3. 非法判定只有 SEW=e8 / LMUL=1 两条。`vm=0` 不在这里判：`VDOT_VV` 的 BitPat
++    *     已把 bit25 固定为 1，vm=0 在译码阶段就匹配不到本指令（落 decodeDefault），
++    *     因此 FU 内的 `!outVm` 是恒假的死条件，已删除。
++    *
++    * **面积开关**：`XSCoreParameters.hasVdot`（默认 true）。关掉时 `VDotUnit` **不例化**、
++    * 三条输出退回原样，本 FU 的硬件与未扩展前逐位相同；译码侧会同步把表项摘掉
++    * （`DecodeUnit.decode_table`），因此那种配置下 0xFA20A1D7 是不可识别指令。
++    */
++  private val hasVdot   = p(XSCoreParamsKey).hasVdot
++  private val outIsVdot = hasVdot.B && VdotOpcode.isVdot(outCtrl.fuOpType)
++
++  if (hasVdot) {
++    val vdotUnit = Module(new VDotUnit(dataWidth))
++    vdotUnit.io.vs1 := outData.src(0)
++    vdotUnit.io.vs2 := outData.src(1)
++
++    val vdotIllegal = outVecCtrl.vsew =/= VSew.e8 || outVecCtrl.vlmul =/= VLmul.m1
++
++    io.out.bits.res.data := Mux(outIsVdot, Cat(0.U((dataWidth - 32).W), vdotUnit.io.sum), mgu.io.out.vd)
++    io.out.bits.res.vxsat.get := Mux(outIsVdot, false.B, (outVxsat & mgu.io.out.active).orR)
++    io.out.bits.ctrl.exceptionVec.get(ExceptionNO.illegalInstr) :=
++      Mux(outIsVdot, vdotIllegal, mgu.io.out.illegal)
++  } else {
++    io.out.bits.res.data := mgu.io.out.vd
++    io.out.bits.res.vxsat.get := (outVxsat & mgu.io.out.active).orR
++    io.out.bits.ctrl.exceptionVec.get(ExceptionNO.illegalInstr) := mgu.io.out.illegal
++  }
+ }

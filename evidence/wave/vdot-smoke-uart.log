@@ -1,0 +1,13 @@
+emu compiled at Oct 31 2026, 13:40:25
+Using simulated 32768B flash
+Using simulated 8386560MB RAM
+The image is vdot_smoke.bin
+%Warning: previous dump at t=0, requesting t=0, dump call ignored
+%Warning: previous dump at t=0, requesting t=0, dump call ignored
+vdot smoke: 00000008 00000000 00000000 00000000
+RESULT: PASS
+Core 0: [33mEXCEEDING CYCLE/INSTR LIMIT at pc = 0x800000ac
+[0m[35mCore-0 instrCnt = 425, cycleCnt = 13,000, IPC = 0.032692
+[0m[34mSeed=0 Guest cycle spent: 13,004 (this will be different from cycleCnt if emu loads a snapshot)
+[0m[34mHost time spent: 178,350ms
+[0m

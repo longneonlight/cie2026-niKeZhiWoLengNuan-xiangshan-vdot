@@ -1,0 +1,11 @@
+emu-v23-final-1841 compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is vdot_off.bin
+vdot-off test (hasVdot=false)
+  case1 vdot@e8m1        FAIL (trapped=00000000 cause=00000000 want cause=00000002)
+  case2 v3-unmodified    FAIL (v3[0]=00000908 want=0badf00d)
+  case3 core-alive      PASS (v5[0]=00000022)
+  case4 vm=0             PASS (trapped=1 cause=00000002)
+RESULT: FAIL

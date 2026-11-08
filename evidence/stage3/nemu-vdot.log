@@ -1,0 +1,14 @@
+=== stage3: vdot.vv on NEMU (first working run) ===
+2026-10-28T14:43:14+08:00
+
+--- 改动三处 ---
+1. vcompute.h      : def_EHelper(vdot) 实现
+2. decode.h        : vopmvv 表新增 funct6=110000 的 pattern
+3. isa-all-instr.h : VECTOR_INSTR_TERNARY(f) 登记 f(vdot)   <-- 关键且容易漏
+
+--- 运行 ---
+$ ./build/riscv64-nemu-interpreter -b ~/hello/vdot_test.bin
+vdot.vv on NEMU
+out  = 000005d8
+want = 000005d8
+RESULT: PASS

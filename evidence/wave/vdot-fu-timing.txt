@@ -1,0 +1,36 @@
+=== vdot.vv 的 FU 输入→输出时序（波形实测） ===
+
+构建：EMU_TRACE=1 make emu
+程序：tests/vdot/vdot_wave.c（一条 vdot，vs1=vs2=0x0101…01，期望 8）
+仿真：~/emu.trace2 -i vdot_wave.bin --no-diff -b 8300 -e 8340 -C 8340 \
+        --dump-wave --wave-path=/tmp/vdot_win.vcd
+波形：evidence/wave/vdot-8318-window.vcd.gz（原始 79 MB，压缩后 8.0 MB）
+扫描脚本（随仓库）：rtl/wave_vimac_cycle.py
+实例：TOP.SimTop.l_soc.core_with_l2.core.backend.inner_vfExuBlock.exus.Vimac
+
+--- 逐拍（关键窗口）---
+t=8317  in=0 out=0 data=0x00000000  fuOp=0b111111110   (上一条/空闲)
+t=8318  in=1 out=0 data=0x00000000  fuOp=0b001100111   ← vdot 进入 FU（fuOp=0x067）
+t=8319  in=0 out=0 data=0x00000000  fuOp=0b001100111
+t=8320  in=0 out=1 data=0x00000008  pdest=0b00110011=51  ← 结果出 FU
+t=8321+ in=0 out=0 data 保持 0x00000008
+
+--- 结论 ---
+1. FU 输入→输出 = 2 拍（t=8318 → t=8320），与 VimacCfg.latency = CertainLatency(2)
+   （FuConfig.scala:559）一致；数据 res_data[31:0] = 0x00000008、pdest = 51。
+2. 这与"归约是纯组合"并不矛盾：VDotUnit.scala 单元内没有寄存器，组合树在 1 拍内算完；
+   FU 边界上的流水寄存器带来的是整条指令 2 拍。
+3. 因此：
+   - 不能说"vdot 的 FU 输入→输出 1 拍"（单次执行口径的 mcycle 数字不是 FU 延迟）；
+   - 可以说"归约是 1 拍内完成的组合树；FU/整条指令按 2 拍流水"。
+4. 阶段一 vadd.vv 的 8568→8569（1 拍）是 VIAluFix 的实测，与本 FU 不同——两条通路的
+   拍数不能混用。
+
+--- 重抓步骤 ---
+  riscv64-linux-gnu-gcc -march=rv64gcv -mabi=lp64d -nostdlib -nostartfiles \
+    -ffreestanding -O2 -fno-pic -fno-pie -mcmodel=medany \
+    -T tests/hello/link.ld -o vdot_wave.elf tests/vdot/vdot_wave.c
+  riscv64-linux-gnu-objcopy -O binary vdot_wave.elf vdot_wave.bin
+  ~/emu.trace2 -i vdot_wave.bin -F tests/flash/stub.bin --no-diff \
+    -b 8300 -e 8340 -C 8340 --dump-wave --wave-path=/tmp/vdot_win.vcd
+  python3 rtl/wave_vimac_cycle.py /tmp/vdot_win.vcd 8314 8324

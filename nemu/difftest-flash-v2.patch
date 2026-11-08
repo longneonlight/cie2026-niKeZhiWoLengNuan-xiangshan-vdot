@@ -1,0 +1,56 @@
+diff --git a/src/cpu/difftest/ref.c b/src/cpu/difftest/ref.c
+index e58f0797..ef36132b 100644
+--- a/src/cpu/difftest/ref.c
++++ b/src/cpu/difftest/ref.c
+@@ -91,6 +91,18 @@ void difftest_load_flash(void *flash_bin, size_t f_size){
+ #endif
+ }
+ 
++/* difftest API v2：直接接收 DUT 的 flash 镜像字节（而不是路径）。
++ * 参考模型侧据此得到与 DUT 完全相同的 flash 内容，无需 -F，也不会有
++ * CONFIG_FLASH_PRESET_CONTENT 残留导致的启动错位。 */
++void difftest_load_flash_v2(const void *flash_bin, size_t f_size){
++#ifndef CONFIG_HAS_FLASH
++  printf("nemu does not enable flash fetch!\n");
++#else
++  extern void load_flash_contents_from_mem(const void *src, size_t size);
++  load_flash_contents_from_mem(flash_bin, f_size);
++#endif
++}
++
+ void difftest_set_ramsize(size_t ram_size){
+   // should be called before difftest_init()
+ #ifdef CONFIG_USE_MMAP
+diff --git a/src/device/flash.c b/src/device/flash.c
+index 0b735a95..66df199f 100644
+--- a/src/device/flash.c
++++ b/src/device/flash.c
+@@ -75,6 +75,28 @@ void load_flash_contents(const char *flash_img) {
+   }
+ }
+ 
++/**
++ * Load flash contents directly from memory (difftest API v2).
++ *
++ * 与 load_flash_contents() 的区别：v1 只拿到"路径"，没有路径时回退到
++ * CONFIG_FLASH_PRESET_CONTENT；v2 直接拿到 DUT 侧的 flash 镜像字节，
++ * 与 DUT 完全一致，因此不需要 -F 也不会有预置内容残留。
++ */
++void load_flash_contents_from_mem(const void *src, size_t size) {
++  assert(CONFIG_FLASH_SIZE <= 0x20000000UL);
++  void *ret = mmap((void *)flash_base, CONFIG_FLASH_SIZE, PROT_READ | PROT_WRITE,
++    MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
++  if (ret != flash_base) {
++    perror("mmap");
++    assert(0);
++  }
++  size_t n = size > CONFIG_FLASH_SIZE ? CONFIG_FLASH_SIZE : size;
++  if (src != NULL && n > 0) {
++    memcpy((void *)flash_base, src, n);
++  }
++  Log("load flash from DUT via difftest_load_flash_v2: %zu bytes", n);
++}
++
+ uint8_t* get_flash_base() {
+   return flash_base;
+ }

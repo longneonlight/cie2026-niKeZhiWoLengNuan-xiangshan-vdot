@@ -1,0 +1,15 @@
+# 统一行尾：仓库内一律 LF（Windows 编辑器/工具不要写回 CRLF）
+* text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.pdf  binary
+*.docx binary
+*.pptx binary
+*.tgz  binary
+*.bin  binary
+*.elf  binary
+*.o    binary
+*.so   binary
+*.a    binary

@@ -1,0 +1,51 @@
+build/
+out/
+*.fst
+*.vcd
+*.o
+*.elf
+obj_dir/
+*.a
+*.so
+*.bin
+
+# A10 综合/仿真构建产物
+evidence/synth/obj_*/
+evidence/synth/*.build.log
+evidence/synth/dbg.log
+
+# ==== 仅本地保留、不进入公开仓库 ====
+# 这些是过程文档（交接/复盘/审计/自评/讲稿），留在工作区供自己查阅，
+# 但不随公开仓库发布；公开仓库只放提交材料（三份报告 + 设计/验证文档 + 代码 + 证据）。
+docs/00-SUMMARY.md
+docs/02a-design-skeleton-v0.1.md
+docs/03-deliverables-checklist.md
+docs/04-rubric-decisions.md
+docs/05-ai-project-map.md
+docs/11-version-decision.md
+docs/14-attribution.md
+docs/15-schedule.md
+docs/20-report-outline.md
+docs/25-report-selfcheck.md
+docs/26-ppt-speaker-notes.md
+docs/26-ppt-speaker-notes.pdf
+docs/29-dist-reverse-check.md
+docs/30-full-review-2026-11-02.md
+docs/31-verify-round2-2026-11-03.md
+docs/32-project-brief.md
+docs/32-project-brief.pdf
+docs/AUDIT.md
+docs/AUDIT-FIX-2026-11-01.md
+docs/AUDIT-VERIFY.md
+docs/HANDOVER.md
+docs/PROGRESS.md
+docs/REDTEAM-REVIEW.md
+docs/SUBMIT-MANIFEST.md
+docs/archive/
+scripts/check-numbers.sh
+scripts/make-repo-skeleton.sh
+ref/vdot_ref
+
+# Python 缓存
+__pycache__/
+*.pyc

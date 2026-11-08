@@ -1,0 +1,18 @@
+=== vdot regression summary 2026-11-01T19:03:13+08:00 ===
+
+TEST                       RESULT DETAIL
+-------------------------- ------ ------------------------------
+build-clean(VDOTDBG=0)     PASS   0
+basic-9case(difftest)      PASS   9/9 mismatch=0
+illegal-4cond(no-diff)     PASS   4/4
+vstart(no-diff)            PASS   3/3
+random-100(3-way)          PASS   checksum=1bd2ef2a
+perf-3metric(no-diff)      PASS   vdotresult=000000cc
+
+OVERALL: PASS
+
+--- perf 三口径 ---
+vdot result = 000000cc
+[A] latency  : baseline=11  vdot=1  cyc/次  速度比(x100)=1100
+[B] throughput: baseline=5  vdot=3  cyc/次  速度比(x100)=166
+[C] b2b      : baseline=17  vdot=1  cyc/次  速度比(x100)=1700

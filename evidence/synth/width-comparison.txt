@@ -1,0 +1,23 @@
+# 位宽变体对照：8 个 int16 乘积 → 32 位和
+# 日期：2026-10-31  主机：VM (192.168.157.50, Ubuntu 22.04, Yosys 0.9)
+# 源：width-variants.v
+# 命令：yosys -p "read_verilog width-variants.v; synth -top <M>; stat"
+#       yosys -p "read_verilog width-variants.v; synth -top <M>; ltp"
+
+module   Number of cells   Longest topological path
+red32    522               16
+red20    522               16
+red19    522               16
+
+# 单元构成（三者完全相同）：
+#   $_ANDNOT_ 76  $_AND_ 34  $_AOI3_ 89  $_NAND_ 2  $_NOR_ 13  $_NOT_ 22
+#   $_OAI3_ 22   $_ORNOT_ 17 $_OR_ 13    $_XNOR_ 78 $_XOR_ 156
+
+# 结论：
+# 1. 精确和无溢出所需的下限是 19 位有符号（8 × 128 × 128 = 2^17，再加符号位），
+#    但把数据通路从 32 位收到 20 / 19 位，综合后的门数与最长路径一个都不变。
+# 2. 原因：输入是 16 位，高位本来就是符号扩展；synth/abc 会把冗余高位剪掉。
+#    也就是说"收窄累加器"在 8 操作数、int8 输入这个规模上**不是可优化项**。
+# 3. 与 reducer-comparison.txt 合起来看：树形（二叉/四叉）与位宽（32/20/19）
+#    这两个轴在综合后都是退化的；真正能动时序/吞吐的是流水寄存器、重定时、
+#    操作数隔离，以及乘法器本身的实现（阵列 vs Booth/Wallace）——这四项本设计均未做。

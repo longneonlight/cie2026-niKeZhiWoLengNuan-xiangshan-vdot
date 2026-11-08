@@ -1,0 +1,3 @@
+vdot.vv random tests: 100 cases, vl=1..16
+fails=0  checksum=1bd2ef2a
+RESULT: PASS

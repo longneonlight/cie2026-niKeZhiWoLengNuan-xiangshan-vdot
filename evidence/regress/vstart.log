@@ -1,0 +1,10 @@
+emu compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is vdot_vstart.bin
+vdot.vv vstart handling (XiangShan house rule: vstart!=0 -> illegal)
+  [0] vstart=0   vstart=0  trapped=0  cause=00000000  got=000000cc  PASS
+  [1] vstart=4   vstart=4  trapped=1  cause=00000002  PASS (illegal as expected)
+  [2] vstart=16  vstart=16  trapped=1  cause=00000002  PASS (illegal as expected)
+RESULT: PASS

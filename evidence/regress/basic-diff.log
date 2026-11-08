@@ -1,0 +1,19 @@
+emu compiled at Nov  1 2026, 18:19:13
+Using simulated 32768B flash
+use /home/ubuntu/cie2026-vdot-repo/tests/flash/stub.bin as flash bin
+Using simulated 8386560MB RAM
+The image is vdot_basic.bin
+The reference model is /home/ubuntu/xs-env/NEMU/build/riscv64-nemu-interpreter-so
+The first instruction of core 0 has commited. Difftest enabled. 
+[1;34m[src/device/flash.c:97,load_flash_contents_from_mem] load flash from DUT via difftest_load_flash_v2: 12 bytes[0m
+vdot.vv basic tests (SEW=8, VLEN=128)
+  [1] positive   vl=16  got=000000cc  want=000000cc  PASS
+  [2] negative   vl=16  got=ffffff34  want=ffffff34  PASS
+  [3] bound-min  vl=16  got=00020000  want=00020000  PASS
+  [3] bound-max  vl=16  got=0001f808  want=0001f808  PASS
+  [4] zero       vl=16  got=00000000  want=00000000  PASS
+  [5] mixed ±1   vl=16  got=00000000  want=00000000  PASS
+  [6] positive   vl=8   got=000000cc  want=000000cc  PASS
+  [7] positive   vl=4   got=000000cc  want=000000cc  PASS
+  [8] vl=0              got=000000cc  want=000000cc  PASS
+RESULT: PASS

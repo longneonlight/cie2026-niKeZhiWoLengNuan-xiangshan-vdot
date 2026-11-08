@@ -1,0 +1,20 @@
+=== stage1: XiangShan RTL elaboration (Ubuntu 22.04.5) ===
+2026-10-28T12:06:36+08:00
+
+--- system ---
+Ubuntu 22.04.5 LTS
+6.8.0-138-generic
+cores: 8
+
+--- versions ---
+XiangShan: 16ae9ddcd 2025-04-03
+Verilator 5.052 2026-09-05 rev v5.052
+Ubuntu clang version 19.1.7 (++20250114103320+cd708029e0b2-1~exp1~20250114103432.75)
+
+--- build command ---
+make -C XiangShan verilog JVM_XMX=16G -j8
+
+--- output ---
+sv files: 1717
+1.3G	/home/ubuntu/xs-env/XiangShan/build/rtl
+-rw-rw-r-- 1 ubuntu ubuntu 116902 10月 28 12:01 /home/ubuntu/xs-env/XiangShan/build/rtl/XSTop.sv

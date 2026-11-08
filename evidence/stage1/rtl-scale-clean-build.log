@@ -1,0 +1,26 @@
+=== 阶段一：香山 RTL 生成规模（2026-10-31 干净重建后重测） ===
+测量时间：2026-10-31T12:15+08:00
+机器：Ubuntu 22.04.5 LTS，8 vCPU / 27 GiB
+
+--- 生成（一次干净的 make emu）---
+$ rm -rf ~/xs-env/XiangShan/build/rtl build/emu build/emu-compile
+$ source ~/xs-env/env.sh && cd ~/xs-env/XiangShan
+$ make emu JVM_XMX=16G -j8
+（2026-10-31 11:29 开始，12:10 结束，MAKE_EXIT=0）
+
+--- 统计 ---
+$ find build/rtl -name '*.sv' | wc -l
+1790
+$ du -sh build/rtl
+1.5G    build/rtl
+   其中 SimTop.fir = 1347 MB，1790 个 .sv 合计 181.5 MB
+$ ls -l build/emu
+113503376 字节（与 10-29 定版构建的字节数完全相同）
+
+--- 更正说明（2026-10-31 复核）---
+1. 此前记录的 "1816 个 .sv / 2.7 GB"（本目录下 rtl-elaboration-vdot.log）是
+   build/rtl 中残留了两次 elaboration 产物时的统计（多出约 26 个 .sv、FIR 文件重复），
+   不是一次干净生成的规模；该文件保留作历史，但数字不再引用。
+2. 干净 `make emu` 的规模是 **1790 个 .sv / 1.5 GB（含 FIR）**；若只算 .sv 文本约 182 MB。
+3. `make verilog` 是 **FPGA 平台配置**（--fpga-platform --disable-all），生成物与 emu 不同，
+   本设计的功能/性能验证都基于 `make emu` 的 RTL，报告不混用两者的规模数字。

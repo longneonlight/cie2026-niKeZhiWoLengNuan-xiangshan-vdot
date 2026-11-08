@@ -1,0 +1,24 @@
+=== stage1: vadd.vv（tests/hello/vadd.c）在 NEMU 上 ===
+2026-11-07T22:02:00+08:00
+
+--- 程序 ---
+tests/hello/vadd.c -> vadd.elf (6808 B) -> vadd.bin (872 B)
+
+--- 反汇编（vadd 附近）---
+      80000042:	03c2                	slli	t2,t2,0x10
+      80000044:	10138393          	addi	t2,t2,257
+      80000048:	03c2                	slli	t2,t2,0x10
+      8000004a:	10138393          	addi	t2,t2,257
+      8000004e:	5e03c0d7          	vmv.v.x	v1,t2
+      80000052:	5e03c157          	vmv.v.x	v2,t2
+      80000056:	021101d7          	vadd.vv	v3,v1,v2
+      8000005a:	020581a7          	vse8.v	v3,(a1)
+      8000005e:	07600613          	li	a2,118
+      80000062:	00000717          	auipc	a4,0x0
+      80000066:	0e670713          	addi	a4,a4,230 # 80000148 <kmain+0x134>
+
+--- run ---
+$ ~/bin/nemu-standalone -b vadd.bin
+vadd.vv test
+v3 bytes: 02 02 02 02 02 02 02 02
+RESULT: PASS (all lanes == 0x02)
