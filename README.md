@@ -71,4 +71,4 @@ bash scripts/repro-stage3.sh full     # 再加 100 组随机三方对拍与性�
 
 1. **没有工艺面积**。环境里没有 PDK 与标准单元库，4,887 是 Yosys 通用门级综合的等效门数，不是某个工艺下的面积。
 2. **没有时序收敛证明**。没做 STA，不主张 Fmax；2 拍是 FU 的流水级数，波形实测。
-3. **非法条件只在 RTL 侧验证**。NEMU 的 trap 不经过 difftest 比对，`vm=0` / `vsew=e16` / `vlmul=m2` 三条是单侧看 `mcause`。
+3. **异常类用例只在 RTL 侧判定**。本套 difftest 在指令触发 trap 时两侧不同步（`ecall` 与全零指令做对照同样失配，见 `evidence/final8/trap-diff-control.txt`），因此 `vm=0` / `vsew=e16` / `vlmul=m2` 与 `vstart≠0` 都按 RTL 的 `mcause` 判定。

@@ -1,0 +1,28 @@
+=== 对照实验：异常类指令在 difftest 下的行为 ===
+日期：2026-11-10T01:19:34+08:00
+仿真：build/emu --diff ~/xs-env/NEMU/build/riscv64-nemu-interpreter-so
+参考模型：riscv64-xs-ref_defconfig（CONFIG_REPORT_ILLEGAL_INSTR 未开）
+
+--- 对照 1：ecall（与 vdot 无关的标准异常）---
+mstatus different at pc = 0x008000006e, right= 0x8000000a00000600, wrong = 0x8000040a00001e00
+   mepc different at pc = 0x008000006e, right= 0x0000000000000000, wrong = 0x0000000080000080
+ mcause different at pc = 0x008000006e, right= 0x0000000000000000, wrong = 0x000000000000000b
+Core 0: [31mABORT at pc = 0xffff6779fe3d78ec
+
+--- 对照 2：全零指令 .word 0x00000000（标准非法指令）---
+mstatus different at pc = 0x008000007c, right= 0x8000000a00000600, wrong = 0x8000040a00001e00
+   mepc different at pc = 0x008000007c, right= 0x0000000000000000, wrong = 0x0000000080000080
+ mcause different at pc = 0x008000007c, right= 0x0000000000000000, wrong = 0x0000000000000002
+Core 0: [31mABORT at pc = 0x8000009e
+
+--- 对照 3：vdot 的 vm=0（本作品）---
+mstatus different at pc = 0x008000010e, right= 0x8000000a00000600, wrong = 0x8000040a00001e00
+   mepc different at pc = 0x008000010e, right= 0x0000000000000000, wrong = 0x0000000080000112
+  mtval different at pc = 0x008000010e, right= 0x0000000000000000, wrong = 0x00000000f820a1d7
+ mcause different at pc = 0x008000010e, right= 0x0000000000000000, wrong = 0x0000000000000002
+Core 0: [31mABORT at pc = 0x80000126
+
+--- 结论 ---
+三者表现一致：DUT 侧 mcause/mepc/mtval 已更新，参考模型侧仍为 0，比对当场 abort。
+即：本套 difftest 在指令触发 trap 时两侧不同步，与 vdot 无关。
+因此非法条件与 vstart≠0 这类异常用例只能在 RTL 单侧按 mcause 判定。
